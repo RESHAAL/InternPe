@@ -1,0 +1,498 @@
+# =========================================================
+# PROFESSIONAL DIABETES RISK SCREENING SYSTEM
+# =========================================================
+
+# ---------------- IMPORT LIBRARIES ----------------
+import streamlit as st
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
+
+# ---------------- PAGE CONFIG ----------------
+st.set_page_config(
+    page_title="Diabetes Risk Screening System",
+    page_icon="🩺",
+    layout="wide"
+)
+
+# ---------------- CUSTOM CSS ----------------
+st.markdown("""
+<style>
+
+/* Main Background */
+.stApp {
+    background-color: #f4f7fb;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background-color: #1e293b;
+    color: white;
+}
+
+/* Sidebar Text */
+section[data-testid="stSidebar"] * {
+    color: white !important;
+}
+
+/* Main Titles */
+h1 {
+    color: #0f172a !important;
+    font-family: 'Segoe UI';
+    font-weight: 700;
+}
+
+/* Section Titles */
+h2, h3 {
+    color: #1e293b !important;
+    font-family: 'Segoe UI';
+}
+
+/* Paragraph Text */
+p {
+    color: #334155 !important;
+    font-size: 17px;
+    line-height: 1.7;
+}
+
+/* White Cards */
+.metric-card {
+    background-color: white;
+    padding: 25px;
+    border-radius: 18px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
+/* Section Containers */
+.section-box {
+    background-color: white;
+    padding: 30px;
+    border-radius: 18px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    margin-bottom: 25px;
+}
+
+/* Text inside cards */
+.metric-card h2,
+.metric-card h3,
+.section-box h2,
+.section-box h3,
+.section-box p {
+    color: #1e293b !important;
+}
+
+/* Buttons */
+.stButton>button {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    height: 3.2em;
+    width: 100%;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.stButton>button:hover {
+    background-color: #1d4ed8;
+    color: white;
+}
+
+/* Input Labels */
+label {
+    color: #1e293b !important;
+    font-weight: 500;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    color: #64748b;
+    font-size: 14px;
+    margin-top: 40px;
+    padding-bottom: 20px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------- SIDEBAR ----------------
+st.sidebar.title("🩺 Navigation")
+
+page = st.sidebar.radio(
+    "Go To",
+    [
+        "Home",
+        "Patient Screening",
+        "Analytics",
+        "About System"
+    ]
+)
+
+# ---------------- LOAD DATA ----------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+csv_path = os.path.join(BASE_DIR, "diabetes.csv")
+
+data = pd.read_csv(csv_path)
+
+# ---------------- DATA PREPARATION ----------------
+X = data.drop(columns='Outcome', axis=1)
+Y = data['Outcome']
+
+scaler = StandardScaler()
+scaler.fit(X)
+
+X = scaler.transform(X)
+
+X_train, X_test, Y_train, Y_test = train_test_split(
+    X,
+    Y,
+    test_size=0.2,
+    stratify=Y,
+    random_state=2
+)
+
+# ---------------- MODEL ----------------
+model = SVC(kernel='linear', probability=True)
+model.fit(X_train, Y_train)
+
+# ---------------- ACCURACY ----------------
+train_prediction = model.predict(X_train)
+test_prediction = model.predict(X_test)
+
+train_accuracy = accuracy_score(Y_train, train_prediction)
+test_accuracy = accuracy_score(Y_test, test_prediction)
+
+# =========================================================
+# HOME PAGE
+# =========================================================
+if page == "Home":
+
+    st.title("Diabetes Risk Screening System")
+
+    st.markdown("""
+    <div class='section-box'>
+
+    <h3>Clinical Decision Support Dashboard</h3>
+
+    <p>
+    This system assists in preliminary diabetes risk screening using
+    machine learning-based analysis of patient health parameters.
+    </p>
+
+    <p>
+    The platform is designed to support healthcare screening workflows
+    by providing structured risk assessment and preventive recommendations.
+    </p>
+
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown(f"""
+        <div class='metric-card'>
+        <h3>Dataset Records</h3>
+        <h2>{data.shape[0]}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown(f"""
+        <div class='metric-card'>
+        <h3>Training Accuracy</h3>
+        <h2>{train_accuracy*100:.2f}%</h2>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown(f"""
+        <div class='metric-card'>
+        <h3>Testing Accuracy</h3>
+        <h2>{test_accuracy*100:.2f}%</h2>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("### Dataset Preview")
+    st.dataframe(data.head())
+
+# =========================================================
+# PATIENT SCREENING PAGE
+# =========================================================
+elif page == "Patient Screening":
+
+    st.title("Patient Risk Screening")
+
+    st.markdown("""
+    <div class='section-box'>
+    <p>
+    Enter patient clinical parameters below for diabetes risk evaluation.
+    </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.subheader("Patient Information")
+
+        pregnancies = st.number_input(
+            "Pregnancies",
+            min_value=0,
+            max_value=20,
+            value=1
+        )
+
+        age = st.number_input(
+            "Age",
+            min_value=1,
+            max_value=120,
+            value=25
+        )
+
+        bmi = st.number_input(
+            "BMI",
+            min_value=0.0,
+            value=24.0
+        )
+
+        diabetes_pedigree = st.number_input(
+            "Diabetes Pedigree Function",
+            min_value=0.0,
+            value=0.5
+        )
+
+    with col2:
+
+        st.subheader("Clinical Measurements")
+
+        glucose = st.number_input(
+            "Glucose Level",
+            min_value=0,
+            value=120
+        )
+
+        blood_pressure = st.number_input(
+            "Blood Pressure",
+            min_value=0,
+            value=70
+        )
+
+        skin_thickness = st.number_input(
+            "Skin Thickness",
+            min_value=0,
+            value=20
+        )
+
+        insulin = st.number_input(
+            "Insulin",
+            min_value=0,
+            value=80
+        )
+
+    # ---------------- PREDICTION ----------------
+    if st.button("Run Clinical Assessment"):
+
+        with st.spinner("Analyzing patient parameters..."):
+
+            input_data = np.asarray([
+                pregnancies,
+                glucose,
+                blood_pressure,
+                skin_thickness,
+                insulin,
+                bmi,
+                diabetes_pedigree,
+                age
+            ])
+
+            input_data = input_data.reshape(1, -1)
+
+            std_data = scaler.transform(input_data)
+
+            prediction = model.predict(std_data)
+
+            probability = model.predict_proba(std_data)[0][1] * 100
+
+        st.markdown("---")
+
+        st.subheader("Screening Assessment")
+
+        # ---------------- PATIENT SUMMARY ----------------
+        st.markdown(f"""
+        <div class='section-box'>
+
+        <h3>Patient Summary</h3>
+
+        <p><b>Age:</b> {age}</p>
+        <p><b>BMI:</b> {bmi}</p>
+        <p><b>Glucose Level:</b> {glucose}</p>
+        <p><b>Blood Pressure:</b> {blood_pressure}</p>
+
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ---------------- RISK BAR ----------------
+        st.write("### Clinical Risk Indicator")
+        st.progress(int(probability))
+
+        st.write(f"Risk Probability: {probability:.2f}%")
+
+        # ---------------- RISK CATEGORY ----------------
+        if probability < 35:
+
+            st.success("Stable Condition")
+
+            recommendation = """
+• Maintain balanced nutrition  
+• Continue regular physical activity  
+• Schedule periodic health checkups  
+• Maintain healthy body weight
+"""
+
+        elif probability < 70:
+
+            st.warning("Observation Recommended")
+
+            recommendation = """
+• Monitor blood glucose regularly  
+• Improve dietary habits  
+• Increase physical activity  
+• Consider physician consultation
+"""
+
+        else:
+
+            st.error("Clinical Attention Recommended")
+
+            recommendation = """
+• Immediate medical consultation advised  
+• Maintain strict glucose monitoring  
+• Follow physician-prescribed dietary plan  
+• Regular exercise and medication adherence
+"""
+
+        # ---------------- FINAL RESULT ----------------
+        if prediction[0] == 0:
+
+            st.success(
+                "Screening Result: Lower likelihood of diabetes detected."
+            )
+
+        else:
+
+            st.error(
+                "Screening Result: Elevated diabetes risk detected."
+            )
+
+        # ---------------- RECOMMENDATIONS ----------------
+        st.subheader("Preventive Recommendations")
+
+        st.markdown(f"""
+        <div class='section-box'>
+        <p>{recommendation}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+# =========================================================
+# ANALYTICS PAGE
+# =========================================================
+elif page == "Analytics":
+
+    st.title("Clinical Analytics Dashboard")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.subheader("Diabetes Distribution")
+
+        fig1, ax1 = plt.subplots()
+
+        data['Outcome'].value_counts().plot(
+            kind='pie',
+            autopct='%1.1f%%',
+            ax=ax1
+        )
+
+        ax1.set_ylabel("")
+
+        st.pyplot(fig1)
+
+    with col2:
+
+        st.subheader("Glucose Distribution")
+
+        fig2, ax2 = plt.subplots()
+
+        ax2.hist(data['Glucose'], bins=20)
+
+        ax2.set_xlabel("Glucose Level")
+        ax2.set_ylabel("Patients")
+
+        st.pyplot(fig2)
+
+    st.markdown("---")
+
+    st.subheader("BMI Distribution")
+
+    fig3, ax3 = plt.subplots()
+
+    ax3.hist(data['BMI'], bins=20)
+
+    ax3.set_xlabel("BMI")
+    ax3.set_ylabel("Patients")
+
+    st.pyplot(fig3)
+
+# =========================================================
+# ABOUT PAGE
+# =========================================================
+elif page == "About System":
+
+    st.title("About The System")
+
+    st.markdown("""
+    <div class='section-box'>
+
+    <h3>System Overview</h3>
+
+    <p>
+    This platform was developed to support preliminary diabetes
+    screening through machine learning-based predictive analysis.
+    </p>
+
+    <p>
+    The system evaluates multiple patient health parameters including:
+    glucose level, BMI, insulin level, blood pressure,
+    age, and hereditary indicators.
+    </p>
+
+    <p>
+    The prediction model is trained using the PIMA Indians Diabetes Dataset
+    and utilizes Support Vector Machine (SVM) classification.
+    </p>
+
+    </div>
+    """, unsafe_allow_html=True)
+
+# =========================================================
+# FOOTER
+# =========================================================
+st.markdown("""
+<div class='footer'>
+
+This system is intended for preliminary diabetes risk screening only
+and should not replace professional medical diagnosis.
+
+</div>
+""", unsafe_allow_html=True)
