@@ -1,0 +1,2 @@
+- Run after executing the code
+python -m streamlit run "(location of the .py file)"
